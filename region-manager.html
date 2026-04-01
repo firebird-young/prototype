@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>区域管理 - 后台原型</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+
+  /* 顶栏 */
+  .topbar {
+    background: #1a2035;
+    color: #fff;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .topbar span { opacity: 0.55; font-size: 13px; font-weight: 400; margin-left: 14px; }
+
+  /* 主内容 */
+  .main { padding: 24px 32px; min-height: calc(100vh - 56px); }
+
+  /* 统计条 */
+  .stats-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 22px;
+    align-items: stretch;
+  }
+  .stat-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .stat-label { font-size: 12px; color: #aaa; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 700; color: #1a2035; }
+  .stat-sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+  /* 添加区域按钮放在统计卡片右边 */
+  .stat-add-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 22px;
+  }
+  .add-region-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border: 1.5px dashed #c5cae9;
+    border-radius: 8px;
+    background: none;
+    color: #7986cb;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: border-color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .add-region-btn:hover { border-color: #7986cb; background: #eef2ff; }
+
+  /* 区域 Tab 区 */
+  .region-tabs-wrap {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 18px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    gap: 2px;
+  }
+  .region-tabs-wrap::-webkit-scrollbar { height: 3px; }
+  .region-tabs-wrap::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+
+  .region-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 16px 13px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: #888;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    position: relative;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .region-tab:hover { color: #444; }
+  .region-tab.active {
+    color: var(--color, #4f5fbc);
+    border-bottom-color: var(--color, #4f5fbc);
+  }
+  .tab-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--color, #c0c4cc);
+    flex-shrink: 0;
+  }
+  .tab-count {
+    font-size: 11px;
+    background: #f0f2f5;
+    color: #aaa;
+    border-radius: 10px;
+    padding: 1px 7px;
+    min-width: 20px;
+    text-align: center;
+  }
+  .region-tab.active .tab-count {
+    background: var(--color, #4f5fbc);
+    color: #fff;
+  }
+  /* 编辑按钮：只在激活 tab 上显示 */
+  .tab-edit-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 13px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+    margin-left: 2px;
+  }
+  .region-tab.active .tab-edit-btn { display: inline-flex; align-items: center; }
+  .tab-edit-btn:hover { color: var(--color, #4f5fbc); background: color-mix(in srgb, var(--color, #4f5fbc) 15%, white); }
+
+  /* 图例 */
+  .legend-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    align-items: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 20px;
+    transition: background 0.12s;
+  }
+  .legend-item:hover { background: #f0f2f5; }
+  .legend-item.highlight { background: color-mix(in srgb, var(--color) 12%, white); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color); flex-shrink: 0; }
+  .legend-label { color: #555; font-weight: 500; }
+  .legend-unassigned { color: #bbb; }
+  .legend-sep { color: #ddd; font-size: 13px; }
+
+  /* 省份网格 */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 16px; font-weight: 700; color: #1a2035; }
+  .section-hint { font-size: 12px; color: #bbb; }
+
+  .province-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+  }
+  .province-card {
+    border-radius: 8px;
+    padding: 13px 8px 11px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
+    user-select: none;
+    position: relative;
+    border: 2px solid transparent;
+  }
+  .province-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.09); }
+
+  /* 未分配 */
+  .province-card.unassigned {
+    background: #f5f6fa;
+    border-color: #e8eaed;
+  }
+  .province-card.unassigned .prov-name { color: #c0c4cc; }
+  .province-card.unassigned .prov-tag { color: #ddd; }
+
+  /* 已分配（当前区域） */
+  .province-card.in-current {
+    background: color-mix(in srgb, var(--color) 10%, white);
+    border-color: var(--color);
+  }
+  .province-card.in-current .prov-name { color: var(--color); font-weight: 600; }
+  .province-card.in-current .prov-tag { color: var(--color); opacity: 0.75; }
+
+  /* 属于其他区域 */
+  .province-card.in-other {
+    background: color-mix(in srgb, var(--other-color) 7%, white);
+    border-color: color-mix(in srgb, var(--other-color) 30%, white);
+  }
+  .province-card.in-other .prov-name { color: var(--other-color); font-weight: 500; opacity: 0.75; }
+  .province-card.in-other .prov-tag { color: var(--other-color); opacity: 0.5; }
+
+  .prov-name { font-size: 13px; display: block; }
+  .prov-tag {
+    font-size: 10px;
+    margin-top: 5px;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 2px;
+  }
+  /* 选中勾 */
+  .check-mark {
+    position: absolute;
+    top: 4px; right: 5px;
+    font-size: 12px;
+    display: none;
+    font-weight: 700;
+  }
+  .province-card.in-current .check-mark { display: block; color: var(--color); }
+
+  /* 空态 */
+  .empty-tip {
+    text-align: center;
+    color: #bbb;
+    padding: 60px 0 20px;
+    font-size: 14px;
+  }
+  .empty-tip .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* ===== 弹窗通用 ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px 30px 24px;
+    width: 400px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 18px; color: #1a2035; }
+  .modal label { font-size: 13px; color: #666; display: block; margin-bottom: 5px; }
+  .modal input[type="text"] {
+    width: 100%;
+    border: 1.5px solid #e8eaed;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 16px;
+  }
+  .modal input[type="text"]:focus { border-color: #7986cb; }
+  .color-picker-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .color-swatch {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.12s, border-color 0.12s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: #333; transform: scale(1.15); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
+  .btn {
+    padding: 8px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    font-weight: 500;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-cancel { background: #f0f2f5; color: #666; }
+  .btn-cancel:hover { background: #e4e6eb; }
+  .btn-primary { background: #4f5fbc; color: #fff; }
+  .btn-primary:hover { background: #3d4fa8; }
+  .btn-danger { background: #f5222d; color: #fff; }
+  .btn-danger:hover { background: #cf1322; }
+
+  /* 确认弹窗 */
+  .confirm-modal {
+    width: 340px;
+  }
+  .confirm-modal .confirm-body {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 22px;
+    line-height: 1.7;
+  }
+  .confirm-modal .confirm-title { color: #1a2035; font-weight: 700; font-size: 16px; margin-bottom: 10px; }
+  .confirm-modal .confirm-icon { font-size: 28px; margin-bottom: 10px; }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a2035;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 24px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9999;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">区域管理<span>配置自定义区域与省份归属</span></div>
+
+<div class="main">
+  <!-- 统计 + 添加按钮 -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">已配置区域</div>
+      <div class="stat-value" id="statRegions">0</div>
+      <div class="stat-sub">个自定义区域</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">已分配省份</div>
+      <div class="stat-value" id="statAssigned">0</div>
+      <div class="stat-sub">/ 34 个省级行政区</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">未分配省份</div>
+      <div class="stat-value" id="statUnassigned">34</div>
+      <div class="stat-sub">待分配</div>
+    </div>
+    <div class="stat-add-card">
+      <button class="add-region-btn" onclick="openAddModal()">
+        <span style="font-size:16px;line-height:1">＋</span> 添加区域
+      </button>
+    </div>
+  </div>
+
+  <!-- 区域 Tabs -->
+  <div class="region-tabs-wrap" id="regionTabs"></div>
+
+  <!-- 标题 + 提示 -->
+  <div class="section-header">
+    <span class="section-title" id="sectionTitle">全部省份</span>
+    <span class="section-hint" id="sectionHint">点击上方区域可筛选，点击省份可将其加入/移出当前区域</span>
+  </div>
+
+  <!-- 省份网格 -->
+  <div class="province-grid" id="provinceGrid"></div>
+  <div class="empty-tip" id="emptyTip" style="display:none">
+    <div class="empty-icon">🗺️</div>
+    请先点击右上角「添加区域」，然后选中区域后点击省份进行分配
+  </div>
+</div>
+
+<!-- 新建/编辑区域弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">新建区域</h3>
+    <label>区域名称</label>
+    <input type="text" id="regionNameInput" placeholder="例如：华南地区、东北三省…" maxlength="12" />
+    <label>区域颜色</label>
+    <div class="color-picker-row" id="colorPicker"></div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveRegion()">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗（通用） -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle">确认操作</div>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeConfirm(false)">取消</button>
+      <button class="btn btn-danger" id="confirmOkBtn" onclick="closeConfirm(true)">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 省份操作确认弹窗 -->
+<div class="modal-overlay" id="provConfirmOverlay">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon">📍</div>
+    <div class="confirm-title" id="provConfirmTitle">确认操作</div>
+    <div class="confirm-body" id="provConfirmBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeProvConfirm(false)">取消</button>
+      <button class="btn btn-primary" id="provConfirmOkBtn" onclick="closeProvConfirm(true)">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 数据 =====
+const PROVINCES = [
+  { code: 'bj', name: '北京市' },
+  { code: 'tj', name: '天津市' },
+  { code: 'he', name: '河北省' },
+  { code: 'sx', name: '山西省' },
+  { code: 'nm', name: '内蒙古' },
+  { code: 'ln', name: '辽宁省' },
+  { code: 'jl', name: '吉林省' },
+  { code: 'hlj', name: '黑龙江省' },
+  { code: 'sh', name: '上海市' },
+  { code: 'js', name: '江苏省' },
+  { code: 'zj', name: '浙江省' },
+  { code: 'ah', name: '安徽省' },
+  { code: 'fj', name: '福建省' },
+  { code: 'jx', name: '江西省' },
+  { code: 'sd', name: '山东省' },
+  { code: 'ha', name: '河南省' },
+  { code: 'hb', name: '湖北省' },
+  { code: 'hn', name: '湖南省' },
+  { code: 'gd', name: '广东省' },
+  { code: 'gx', name: '广西壮族' },
+  { code: 'hi', name: '海南省' },
+  { code: 'cq', name: '重庆市' },
+  { code: 'sc', name: '四川省' },
+  { code: 'gz', name: '贵州省' },
+  { code: 'yn', name: '云南省' },
+  { code: 'xz', name: '西藏自治区' },
+  { code: 'snx', name: '陕西省' },
+  { code: 'gs', name: '甘肃省' },
+  { code: 'qh', name: '青海省' },
+  { code: 'nx', name: '宁夏回族' },
+  { code: 'xj', name: '新疆维吾尔' },
+  { code: 'tw', name: '台湾省' },
+  { code: 'hk', name: '香港特区' },
+  { code: 'mo', name: '澳门特区' },
+];
+
+const COLORS = [
+  '#f5222d','#fa541c','#fa8c16','#faad14','#a0d911',
+  '#52c41a','#13c2c2','#1890ff','#2f54eb','#722ed1',
+  '#eb2f96','#7986cb','#26a69a','#8d6e63',
+];
+
+let regions = [
+  { id: 1, name: '华南地区', color: '#13c2c2', provinces: new Set(['gd','gx','hi','fj']) },
+  { id: 2, name: '东北三省', color: '#2f54eb', provinces: new Set(['ln','jl','hlj']) },
+  { id: 3, name: '长三角',   color: '#fa8c16', provinces: new Set(['sh','js','zj','ah']) },
+];
+let nextId = 4;
+let activeRegionId = null; // null = 全部
+let editingRegionId = null;
+let selectedColor = COLORS[0];
+
+// ===== 确认弹窗 promise =====
+let confirmResolve = null;
+let provConfirmResolve = null;
+let pendingProvAction = null; // 存储待执行的省份操作
+
+function showConfirm({ icon = '⚠️', title, body, okText = '确认删除' }) {
+  return new Promise(resolve => {
+    confirmResolve = resolve;
+    document.getElementById('confirmIcon').textContent = icon;
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmBody').textContent = body;
+    document.getElementById('confirmOkBtn').textContent = okText;
+    document.getElementById('confirmOverlay').classList.add('show');
+  });
+}
+function closeConfirm(result) {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  if (confirmResolve) { confirmResolve(result); confirmResolve = null; }
+}
+
+function showProvConfirm({ title, body, okText = '确认' }) {
+  return new Promise(resolve => {
+    provConfirmResolve = resolve;
+    document.getElementById('provConfirmTitle').textContent = title;
+    document.getElementById('provConfirmBody').textContent = body;
+    document.getElementById('provConfirmOkBtn').textContent = okText;
+    document.getElementById('provConfirmOverlay').classList.add('show');
+  });
+}
+function closeProvConfirm(result) {
+  document.getElementById('provConfirmOverlay').classList.remove('show');
+  if (provConfirmResolve) { provConfirmResolve(result); provConfirmResolve = null; }
+}
+
+// ===== 渲染 =====
+function render() {
+  renderTabs();
+  renderProvinceGrid();
+  renderStats();
+}
+
+function renderTabs() {
+  const wrap = document.getElementById('regionTabs');
+  wrap.innerHTML = '';
+
+  // 全部区域 tab
+  const allTab = document.createElement('div');
+  allTab.className = 'region-tab' + (activeRegionId === null ? ' active' : '');
+  allTab.style.setProperty('--color', '#999');
+  allTab.innerHTML = `
+    <div class="tab-dot" style="background:#c0c4cc"></div>
+    <span>全部区域</span>
+    <span class="tab-count">${PROVINCES.length}</span>
+  `;
+  allTab.addEventListener('click', () => { activeRegionId = null; render(); });
+  wrap.appendChild(allTab);
+
+  regions.forEach(r => {
+    const tab = document.createElement('div');
+    tab.className = 'region-tab' + (activeRegionId === r.id ? ' active' : '');
+    tab.style.setProperty('--color', r.color);
+    tab.innerHTML = `
+      <div class="tab-dot"></div>
+      <span>${r.name}</span>
+      <span class="tab-count">${r.provinces.size}</span>
+      <button class="tab-edit-btn" title="修改区域" data-id="${r.id}">✎</button>
+    `;
+    // 点击 tab 切换区域
+    tab.addEventListener('click', (e) => {
+      if (e.target.closest('.tab-edit-btn')) return;
+      activeRegionId = r.id;
+      render();
+    });
+    // 编辑按钮
+    tab.querySelector('.tab-edit-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditModal(r.id);
+    });
+    wrap.appendChild(tab);
+  });
+}
+
+function renderProvinceGrid() {
+  const grid = document.getElementById('provinceGrid');
+  const title = document.getElementById('sectionTitle');
+  const hint = document.getElementById('sectionHint');
+  const emptyTip = document.getElementById('emptyTip');
+  grid.innerHTML = '';
+
+  if (regions.length === 0) {
+    emptyTip.style.display = 'block';
+    grid.style.display = 'none';
+    return;
+  }
+  emptyTip.style.display = 'none';
+  grid.style.display = 'grid';
+
+  const activeRegion = regions.find(r => r.id === activeRegionId);
+  if (activeRegion) {
+    title.textContent = activeRegion.name;
+    hint.textContent = `当前区域：${activeRegion.name} · 点击省份可加入或移出此区域`;
+  } else {
+    title.textContent = '全部省份';
+    hint.textContent = '点击上方区域可筛选，点击省份可将其加入/移出当前区域';
+  }
+
+  const provRegionMap = {};
+  regions.forEach(r => r.provinces.forEach(c => provRegionMap[c] = r));
+
+  PROVINCES.forEach(prov => {
+    const ownerRegion = provRegionMap[prov.code];
+    const card = document.createElement('div');
+    card.className = 'province-card';
+
+    if (!ownerRegion) {
+      card.classList.add('unassigned');
+    } else if (activeRegion && ownerRegion.id === activeRegion.id) {
+      card.classList.add('in-current');
+      card.style.setProperty('--color', activeRegion.color);
+    } else {
+      card.classList.add('in-other');
+      card.style.setProperty('--other-color', ownerRegion.color);
+    }
+
+    const tagText = ownerRegion ? ownerRegion.name : '未分配';
+    card.innerHTML = `
+      <span class="check-mark">✓</span>
+      <span class="prov-name">${prov.name}</span>
+      <span class="prov-tag">${tagText}</span>
+    `;
+    card.addEventListener('click', () => handleProvClick(prov.code, ownerRegion));
+    grid.appendChild(card);
+  });
+}
+
+
+
+
+function renderStats() {
+  const assigned = new Set();
+  regions.forEach(r => r.provinces.forEach(c => assigned.add(c)));
+  document.getElementById('statRegions').textContent = regions.length;
+  document.getElementById('statAssigned').textContent = assigned.size;
+  document.getElementById('statUnassigned').textContent = PROVINCES.length - assigned.size;
+}
+
+// ===== 省份操作（带确认） =====
+async function handleProvClick(code, ownerRegion) {
+  if (!activeRegionId) {
+    if (ownerRegion) {
+      showToast(`「${PROVINCES.find(p=>p.code===code).name}」已属于「${ownerRegion.name}」，请先选中上方区域`);
+    } else {
+      showToast('请先点击上方选中一个区域，再分配省份');
+    }
+    return;
+  }
+  const activeRegion = regions.find(r => r.id === activeRegionId);
+  if (!activeRegion) return;
+  const provName = PROVINCES.find(p => p.code === code).name;
+
+  if (ownerRegion && ownerRegion.id === activeRegion.id) {
+    // 移出当前区域
+    const ok = await showProvConfirm({
+      title: '移出区域',
+      body: `确定将「${provName}」从「${activeRegion.name}」中移出？移出后该省份将变为未分配状态。`,
+      okText: '确认移出',
+    });
+    if (!ok) return;
+    activeRegion.provinces.delete(code);
+    showToast(`已将「${provName}」从「${activeRegion.name}」移除`);
+  } else if (ownerRegion) {
+    // 从其他区域迁入
+    const ok = await showProvConfirm({
+      title: '迁移省份',
+      body: `「${provName}」当前属于「${ownerRegion.name}」，确定迁入「${activeRegion.name}」？`,
+      okText: '确认迁移',
+    });
+    if (!ok) return;
+    ownerRegion.provinces.delete(code);
+    activeRegion.provinces.add(code);
+    showToast(`已将「${provName}」从「${ownerRegion.name}」迁入「${activeRegion.name}」`);
+  } else {
+    // 未分配 → 加入
+    const ok = await showProvConfirm({
+      title: '加入区域',
+      body: `确定将「${provName}」加入「${activeRegion.name}」？`,
+      okText: '确认加入',
+    });
+    if (!ok) return;
+    activeRegion.provinces.add(code);
+    showToast(`已将「${provName}」加入「${activeRegion.name}」`);
+  }
+  render();
+}
+
+// ===== 区域编辑 =====
+function openEditModal(id) {
+  const region = regions.find(r => r.id === id);
+  if (!region) return;
+  editingRegionId = id;
+  document.getElementById('modalTitle').textContent = '修改区域';
+  document.getElementById('regionNameInput').value = region.name;
+  buildColorPicker(region.color);
+  document.getElementById('modalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('regionNameInput').focus(), 80);
+}
+
+// ===== 新建/编辑弹窗 =====
+function buildColorPicker(currentColor) {
+  const picker = document.getElementById('colorPicker');
+  picker.innerHTML = '';
+  selectedColor = currentColor || COLORS[0];
+  COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c === selectedColor ? ' selected' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      selectedColor = c;
+    });
+    picker.appendChild(sw);
+  });
+}
+
+function openAddModal() {
+  editingRegionId = null;
+  document.getElementById('modalTitle').textContent = '新建区域';
+  document.getElementById('regionNameInput').value = '';
+  buildColorPicker(COLORS[Math.floor(Math.random() * COLORS.length)]);
+  document.getElementById('modalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('regionNameInput').focus(), 80);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function saveRegion() {
+  const name = document.getElementById('regionNameInput').value.trim();
+  if (!name) { showToast('请输入区域名称'); return; }
+  if (editingRegionId !== null) {
+    const region = regions.find(r => r.id === editingRegionId);
+    if (region) { region.name = name; region.color = selectedColor; }
+    showToast(`「${name}」修改已保存`);
+  } else {
+    const newRegion = { id: nextId++, name, color: selectedColor, provinces: new Set() };
+    regions.push(newRegion);
+    activeRegionId = newRegion.id; // 新建后自动激活
+    showToast(`区域「${name}」已创建，请点击省份进行分配`);
+  }
+  closeModal();
+  render();
+}
+
+// ===== Toast =====
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// 键盘快捷键
+document.getElementById('regionNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveRegion();
+  if (e.key === 'Escape') closeModal();
+});
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+document.getElementById('confirmOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('confirmOverlay')) closeConfirm(false);
+});
+document.getElementById('provConfirmOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('provConfirmOverlay')) closeProvConfirm(false);
+});
+
+// ===== 初始化 =====
+render();
+</script>
+</body>
+</html>
