@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>运费模板管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6fa; color: #333; }
+
+    /* 顶部导航 */
+    .navbar { background: #fff; border-bottom: 1px solid #e8eaed; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .navbar .logo { font-size: 18px; font-weight: 600; color: #1a73e8; }
+    .navbar .breadcrumb { margin-left: 24px; font-size: 13px; color: #888; }
+    .navbar .breadcrumb span { color: #333; }
+
+    /* 主内容 */
+    .main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+    /* 页面标题 */
+    .page-header { margin-bottom: 20px; }
+    .page-header h1 { font-size: 20px; font-weight: 600; color: #1a1a2e; }
+    .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+    /* 搜索 + 操作栏 */
+    .toolbar { background: #fff; border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 16px; }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .search-wrap { position: relative; }
+    .search-wrap input { width: 280px; height: 36px; border: 1px solid #dde1e7; border-radius: 6px; padding: 0 36px 0 12px; font-size: 14px; color: #333; outline: none; transition: border-color .2s; }
+    .search-wrap input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,.1); }
+    .search-wrap input::placeholder { color: #bbb; }
+    .search-wrap .search-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 15px; cursor: pointer; }
+    .search-wrap .search-icon:hover { color: #1a73e8; }
+    .btn { height: 36px; padding: 0 18px; border-radius: 6px; font-size: 14px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-primary:hover { background: #1558c0; }
+    .btn-default { background: #fff; color: #555; border: 1px solid #dde1e7; }
+    .btn-default:hover { border-color: #1a73e8; color: #1a73e8; }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+
+    /* 统计小标签 */
+    .stat-tag { font-size: 13px; color: #888; }
+    .stat-tag b { color: #1a73e8; font-weight: 600; }
+
+    /* 表格 */
+    .table-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #f8f9fb; }
+    th { padding: 13px 16px; font-size: 13px; font-weight: 600; color: #666; text-align: left; border-bottom: 1px solid #eef0f4; white-space: nowrap; }
+    td { padding: 14px 16px; font-size: 14px; color: #333; border-bottom: 1px solid #f2f4f8; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafbfe; }
+
+    /* 序号列 */
+    .col-index { width: 60px; color: #aaa; font-size: 13px; }
+    /* 模板名称 */
+    .template-name { font-weight: 500; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
+    .template-name .badge { font-size: 11px; background: #e8f0fe; color: #1a73e8; border-radius: 4px; padding: 1px 6px; font-weight: 500; }
+    .template-name .badge-default { background: #f1f3f5; color: #888; }
+    /* 操作 */
+    .col-action { width: 140px; }
+    .action-btn { font-size: 13px; padding: 4px 12px; border-radius: 5px; cursor: pointer; border: none; background: none; transition: all .15s; }
+    .action-edit { color: #1a73e8; }
+    .action-edit:hover { background: #e8f0fe; }
+    .action-delete { color: #e53935; }
+    .action-delete:hover { background: #fdecea; }
+    .divider { display: inline-block; width: 1px; height: 14px; background: #e0e0e0; vertical-align: middle; margin: 0 2px; }
+
+    /* 空状态 */
+    .empty-state { text-align: center; padding: 60px 0; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { color: #aaa; font-size: 14px; }
+
+    /* 分页 */
+    .pagination { display: flex; justify-content: flex-end; align-items: center; padding: 16px 20px; gap: 6px; }
+    .page-info { font-size: 13px; color: #888; margin-right: 8px; }
+    .page-btn { min-width: 32px; height: 32px; border: 1px solid #dde1e7; border-radius: 5px; background: #fff; font-size: 13px; color: #555; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; transition: all .15s; }
+    .page-btn:hover { border-color: #1a73e8; color: #1a73e8; }
+    .page-btn.active { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+    .page-btn:disabled { color: #ccc; cursor: not-allowed; border-color: #eee; }
+
+    /* 删除确认弹窗 */
+    .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-mask.show { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 28px 32px; width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.18); animation: fadeIn .2s; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-icon { font-size: 36px; text-align: center; margin-bottom: 12px; }
+    .modal h3 { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .modal p { font-size: 14px; color: #666; text-align: center; line-height: 1.7; margin-bottom: 24px; }
+    .modal p b { color: #333; }
+    .modal-footer { display: flex; gap: 12px; }
+    .modal-footer .btn { flex: 1; height: 40px; font-size: 15px; border-radius: 8px; }
+
+    /* 提示 toast */
+    .toast { position: fixed; top: 72px; right: 24px; background: #323232; color: #fff; font-size: 14px; padding: 10px 20px; border-radius: 8px; z-index: 2000; opacity: 0; transform: translateY(-10px); transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="navbar">
+  <div class="logo">🚚 物流管理系统</div>
+  <div class="breadcrumb">配送管理 / <span>运费模板管理</span></div>
+</div>
+
+<!-- 主内容 -->
+<div class="main">
+  <div class="page-header">
+    <h1>运费模板管理</h1>
+    <p>统一管理各地区运费规则，支持按模板名称快速检索</p>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="请输入模板名称搜索" oninput="filterTable()" />
+        <span class="search-icon" onclick="filterTable()">🔍</span>
+      </div>
+      <button class="btn btn-default" onclick="clearSearch()">重置</button>
+    </div>
+    <div class="toolbar-right">
+      <span class="stat-tag">共 <b id="totalCount">6</b> 个模板</span>
+      <a href="freight-template-add.html">
+        <button class="btn btn-primary" onclick="window.location.href='freight-template-add.html'">
+          ＋ 添加模板
+        </button>
+      </a>
+    </div>
+  </div>
+
+  <!-- 表格 -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-index">序号</th>
+          <th>模板名称</th>
+          <th>创建人</th>
+          <th>创建时间</th>
+          <th>最近修改时间</th>
+          <th class="col-action">操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- 数据由 JS 渲染 -->
+      </tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display:none">
+      <div class="icon">📭</div>
+      <p>未找到匹配的模板，请换个关键词试试</p>
+    </div>
+    <div class="pagination">
+      <span class="page-info">每页 10 条</span>
+      <button class="page-btn" disabled>‹</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">›</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="modal-mask" id="deleteModal">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <h3>确认删除模板？</h3>
+    <p>即将删除模板 <b id="deleteTemplateName"></b>，<br/>删除后无法恢复，请谨慎操作。</p>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" style="background:#e53935;" onclick="confirmDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 提示 -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const rawData = [
+    { id: 1, name: '标准运费模板',   creator: '张小明', createdAt: '2025-11-05 09:22', updatedAt: '2026-01-08 14:30', isDefault: true },
+    { id: 2, name: '华东大件运费',   creator: '李晓峰', createdAt: '2025-12-01 10:15', updatedAt: '2026-02-14 16:00', isDefault: false },
+    { id: 3, name: '西部偏远地区',   creator: '王芳',   createdAt: '2025-12-18 11:00', updatedAt: '2026-03-01 09:45', isDefault: false },
+    { id: 4, name: '节假日特惠模板', creator: '赵磊',   createdAt: '2026-01-10 08:30', updatedAt: '2026-01-10 08:30', isDefault: false },
+    { id: 5, name: '生鲜冷链专用',   creator: '陈静',   createdAt: '2026-02-20 15:55', updatedAt: '2026-03-22 11:20', isDefault: false },
+    { id: 6, name: '同城快递模板',   creator: '刘洋',   createdAt: '2026-03-05 13:40', updatedAt: '2026-04-01 10:05', isDefault: false },
+  ];
+
+  let displayData = [...rawData];
+  let deleteTarget = null;
+
+  function renderTable(data) {
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    document.getElementById('totalCount').textContent = data.length;
+    if (data.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = data.map((row, i) => `
+      <tr>
+        <td class="col-index">${i + 1}</td>
+        <td>
+          <div class="template-name">
+            ${row.name}
+            ${row.isDefault ? '<span class="badge">默认</span>' : ''}
+          </div>
+        </td>
+        <td>${row.creator}</td>
+        <td>${row.createdAt}</td>
+        <td>${row.updatedAt}</td>
+        <td class="col-action">
+          <button class="action-btn action-edit" onclick="editRow(${row.id})">✏️ 编辑</button>
+          <span class="divider"></span>
+          <button class="action-btn action-delete" onclick="deleteRow(${row.id}, '${row.name}')">🗑️ 删除</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function filterTable() {
+    const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+    displayData = kw ? rawData.filter(r => r.name.toLowerCase().includes(kw)) : [...rawData];
+    renderTable(displayData);
+  }
+
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    displayData = [...rawData];
+    renderTable(displayData);
+  }
+
+  function editRow(id) {
+    window.location.href = 'freight-template-add.html?id=' + id;
+  }
+
+  function deleteRow(id, name) {
+    deleteTarget = id;
+    document.getElementById('deleteTemplateName').textContent = '「' + name + '」';
+    document.getElementById('deleteModal').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deleteTarget = null;
+  }
+
+  function confirmDelete() {
+    if (deleteTarget !== null) {
+      const idx = rawData.findIndex(r => r.id === deleteTarget);
+      if (idx > -1) rawData.splice(idx, 1);
+      displayData = [...rawData];
+      renderTable(displayData);
+      closeModal();
+      showToast('删除成功');
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // 初始化渲染
+  renderTable(rawData);
+</script>
+</body>
+</html>

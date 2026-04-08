@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>添加运费模板</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6fa; color: #333; min-height: 100vh; }
+
+    /* ── 顶部导航 ── */
+    .navbar { background: #fff; border-bottom: 1px solid #e8eaed; padding: 0 24px; height: 56px; display: flex; align-items: center; position: sticky; top: 0; z-index: 200; }
+    .navbar .logo { font-size: 18px; font-weight: 600; color: #1a73e8; }
+    .navbar .breadcrumb { margin-left: 24px; font-size: 13px; color: #888; }
+    .navbar .breadcrumb a { color: #1a73e8; text-decoration: none; }
+    .navbar .breadcrumb a:hover { text-decoration: underline; }
+    .navbar .breadcrumb span { color: #333; }
+
+    /* ── 主体 ── */
+    .main { padding: 24px; max-width: 860px; margin: 0 auto; }
+    .page-header { margin-bottom: 20px; }
+    .page-header h1 { font-size: 20px; font-weight: 600; color: #1a1a2e; }
+    .page-header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+    /* ── 卡片 ── */
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.07); padding: 24px; margin-bottom: 16px; }
+    .card-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .card-title::before { content: ''; display: inline-block; width: 4px; height: 16px; background: #1a73e8; border-radius: 2px; }
+
+    /* ── 基本信息表单 ── */
+    .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    .form-label { font-size: 14px; font-weight: 500; min-width: 88px; color: #444; }
+    .form-label .req { color: #e53935; }
+    .form-input { flex: 1; height: 38px; border: 1px solid #dde1e7; border-radius: 6px; padding: 0 12px; font-size: 14px; outline: none; transition: border-color .2s; max-width: 320px; }
+    .form-input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,.12); }
+    .form-input.err { border-color: #e53935; }
+    .char-count { font-size: 12px; color: #bbb; }
+    .char-count.warn { color: #e53935; }
+    .form-hint { font-size: 12px; color: #bbb; margin-top: 4px; margin-left: 100px; }
+    .err-msg { color: #e53935; font-size: 12px; margin-top: 3px; margin-left: 100px; display: none; }
+    .err-msg.show { display: block; }
+
+    /* ── 默认运费块 ── */
+    .default-block { background: #f0f7ff; border: 1px solid #c8dff8; border-radius: 8px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+    .default-block .lbl { font-size: 14px; font-weight: 500; color: #1558c0; white-space: nowrap; }
+    .default-block .desc { font-size: 13px; color: #5b8de8; flex: 1; min-width: 120px; }
+    .num-wrap { display: flex; align-items: center; gap: 6px; }
+    .num-wrap input { width: 90px; height: 34px; border: 1px solid #aac8f5; border-radius: 6px; padding: 0 10px; font-size: 14px; text-align: right; outline: none; background: #fff; }
+    .num-wrap input:focus { border-color: #1a73e8; }
+    .num-wrap .unit { font-size: 14px; color: #555; }
+
+    /* ── 地区规则列表 ── */
+    .rules-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+
+    /* ── 单条规则卡片 ── */
+    .rule-card { border: 1px solid #e4e8f0; border-radius: 8px; background: #fafbfe; overflow: visible; }
+    .rule-card-head { display: flex; align-items: center; padding: 12px 16px; gap: 10px; border-bottom: 1px solid #eef0f6; }
+    .rule-index { font-size: 12px; background: #1a73e8; color: #fff; border-radius: 4px; padding: 1px 7px; font-weight: 600; }
+    .rule-head-label { font-size: 13px; color: #666; flex: 1; }
+    .rule-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 8px; border-radius: 4px; border: 1px solid #e0e0e0; background: #fff; transition: all .15s; }
+    .rule-del-btn:hover { color: #e53935; border-color: #f5c6c4; background: #fdecea; }
+
+    .rule-card-body { padding: 14px 16px; display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+
+    /* ── 省份多选下拉 ── */
+    .province-selector { flex: 1; min-width: 300px; }
+    .selector-label { font-size: 13px; color: #666; margin-bottom: 6px; }
+
+    /* 选择框触发器 */
+    .select-trigger { min-height: 40px; border: 1px solid #dde1e7; border-radius: 6px; padding: 5px 10px; cursor: pointer; background: #fff; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; position: relative; transition: border-color .2s; }
+    .select-trigger:hover { border-color: #1a73e8; }
+    .select-trigger.open { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,.12); }
+    .select-trigger .placeholder { color: #bbb; font-size: 13px; }
+    .select-trigger .arrow-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #bbb; font-size: 12px; transition: transform .2s; pointer-events: none; }
+    .select-trigger.open .arrow-icon { transform: translateY(-50%) rotate(180deg); }
+
+    /* Tag */
+    .tag { display: inline-flex; align-items: center; gap: 4px; background: #e8f0fe; color: #1a73e8; font-size: 12px; padding: 2px 7px 2px 8px; border-radius: 4px; }
+    .tag .tag-del { cursor: pointer; color: #7fb0f7; font-size: 14px; line-height: 1; margin-left: 1px; }
+    .tag .tag-del:hover { color: #e53935; }
+    .select-count { font-size: 12px; color: #1a73e8; background: #e8f0fe; border-radius: 4px; padding: 2px 7px; }
+
+    /* 下拉面板 */
+    .dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #dde1e7; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 300; padding: 8px 0; max-height: 320px; overflow-y: auto; }
+    .dropdown-search { padding: 6px 10px 8px; border-bottom: 1px solid #f0f2f5; }
+    .dropdown-search input { width: 100%; height: 30px; border: 1px solid #dde1e7; border-radius: 5px; padding: 0 10px; font-size: 13px; outline: none; }
+    .dropdown-search input:focus { border-color: #1a73e8; }
+    .region-group-label { font-size: 12px; color: #aaa; padding: 8px 12px 4px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+    .region-group-label .select-all-btn { color: #1a73e8; cursor: pointer; font-weight: 400; }
+    .region-group-label .select-all-btn:hover { text-decoration: underline; }
+    .province-options { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 12px 8px; }
+    .p-option { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 5px; font-size: 13px; cursor: pointer; border: 1px solid #e8eaed; background: #fff; transition: all .12s; user-select: none; }
+    .p-option:hover { border-color: #1a73e8; color: #1a73e8; background: #f0f7ff; }
+    .p-option.selected { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+    .p-option.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+    .dropdown-empty { text-align: center; font-size: 13px; color: #bbb; padding: 20px 0; }
+
+    /* ── 运费输入 ── */
+    .freight-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+    .freight-field .f-label { font-size: 13px; color: #666; }
+    .freight-field .f-wrap { display: flex; align-items: center; gap: 6px; }
+    .freight-field input { width: 110px; height: 38px; border: 1px solid #dde1e7; border-radius: 6px; padding: 0 10px; font-size: 14px; text-align: right; outline: none; }
+    .freight-field input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,.12); }
+    .freight-field .f-unit { font-size: 14px; color: #666; }
+    .freight-field .f-hint { font-size: 12px; color: #bbb; }
+
+    /* ── 已选省份展示区 ── */
+    .selected-provinces { margin-top: 8px; }
+    .selected-provinces .sp-title { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+    .sp-tags { display: flex; flex-wrap: wrap; gap: 5px; min-height: 24px; }
+
+    /* ── 添加规则按钮 ── */
+    .add-rule-btn { display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; border: 1.5px dashed #c8d8f0; border-radius: 8px; color: #1a73e8; font-size: 14px; cursor: pointer; background: none; width: 100%; transition: all .15s; }
+    .add-rule-btn:hover { border-color: #1a73e8; background: #f0f7ff; }
+
+    /* ── 底部操作栏 ── */
+    .action-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #eef0f4; padding: 14px 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; box-shadow: 0 -2px 8px rgba(0,0,0,.06); z-index: 99; }
+    .btn { height: 38px; padding: 0 22px; border-radius: 6px; font-size: 14px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-primary:hover { background: #1558c0; }
+    .btn-default { background: #fff; color: #555; border: 1px solid #dde1e7; }
+    .btn-default:hover { border-color: #1a73e8; color: #1a73e8; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; top: 72px; right: 24px; background: #323232; color: #fff; font-size: 14px; padding: 10px 20px; border-radius: 8px; z-index: 2000; opacity: 0; transform: translateY(-10px); transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── 滚动条美化 ── */
+    .dropdown::-webkit-scrollbar { width: 5px; }
+    .dropdown::-webkit-scrollbar-thumb { background: #d0d5de; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- 导航 -->
+<div class="navbar">
+  <div class="logo">🚚 物流管理系统</div>
+  <div class="breadcrumb">
+    配送管理 /
+    <a href="freight-template-list.html">运费模板管理</a>
+    / <span id="pageTitle">添加模板</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <h1 id="pageTitleH1">添加运费模板</h1>
+    <p>设置模板名称，为不同地区配置运费规则，未覆盖地区使用默认运费</p>
+  </div>
+
+  <!-- 基本信息 -->
+  <div class="card">
+    <div class="card-title">基本信息</div>
+    <div class="form-row">
+      <div class="form-label">模板名称 <span class="req">*</span></div>
+      <input class="form-input" id="templateName" type="text" maxlength="20"
+        placeholder="请输入模板名称（20字以内）" oninput="onNameInput(this)" />
+      <span class="char-count" id="charCount">0 / 20</span>
+    </div>
+    <div class="err-msg" id="nameError">请输入模板名称</div>
+    <div class="form-hint">建议使用简洁易记的名称，方便后续快速识别和应用</div>
+  </div>
+
+  <!-- 运费规则 -->
+  <div class="card">
+    <div class="card-title">运费规则设置</div>
+
+    <!-- 默认运费 -->
+    <div class="default-block">
+      <span class="lbl">🌐 全国默认运费</span>
+      <span class="desc">未被地区规则覆盖的省份将使用此运费</span>
+      <div class="num-wrap">
+        <input type="number" id="defaultFreight" value="10" min="0" step="0.5" />
+        <span class="unit">元</span>
+      </div>
+    </div>
+
+    <!-- 规则列表（动态渲染） -->
+    <div class="rules-list" id="rulesList"></div>
+
+    <!-- 添加规则按钮 -->
+    <button class="add-rule-btn" id="addRuleBtn" onclick="addRule()">
+      ＋ 增加指定地区规则
+    </button>
+  </div>
+</div>
+
+<!-- 底部操作 -->
+<div class="action-bar">
+  <button class="btn btn-default" onclick="window.location.href='freight-template-list.html'">取消</button>
+  <button class="btn btn-primary" onclick="saveTemplate()">💾 保存模板</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   省份数据
+═══════════════════════════════════════════ */
+const REGIONS = [
+  { id: 'north',     name: '华北',  provinces: ['北京','天津','河北','山西','内蒙古'] },
+  { id: 'northeast', name: '东北',  provinces: ['辽宁','吉林','黑龙江'] },
+  { id: 'east',      name: '华东',  provinces: ['上海','江苏','浙江','安徽','福建','江西','山东'] },
+  { id: 'central',   name: '华中',  provinces: ['河南','湖北','湖南'] },
+  { id: 'south',     name: '华南',  provinces: ['广东','广西','海南'] },
+  { id: 'southwest', name: '西南',  provinces: ['重庆','四川','贵州','云南','西藏'] },
+  { id: 'northwest', name: '西北',  provinces: ['陕西','甘肃','青海','宁夏','新疆'] },
+  { id: 'hkmo',      name: '港澳台', provinces: ['香港','澳门','台湾'] },
+];
+const ALL_PROVINCES = REGIONS.flatMap(r => r.provinces);
+
+/* ═══════════════════════════════════════════
+   规则数据  rules = [{id, provinces:[], freight:''}]
+═══════════════════════════════════════════ */
+let ruleIdSeq = 0;
+let rules = [];
+let openDropdownId = null; // 当前展开的下拉 ruleId
+
+/* ═══════════════════════════════════════════
+   获取已被其他规则占用的省份
+═══════════════════════════════════════════ */
+function occupiedBy(excludeId) {
+  const set = new Set();
+  rules.forEach(r => { if (r.id !== excludeId) r.provinces.forEach(p => set.add(p)); });
+  return set;
+}
+
+/* ═══════════════════════════════════════════
+   添加 / 删除规则
+═══════════════════════════════════════════ */
+function addRule() {
+  const id = ++ruleIdSeq;
+  rules.push({ id, provinces: [], freight: '' });
+  renderRules();
+  // 展开新规则的下拉
+  setTimeout(() => openDropdown(id), 50);
+}
+
+function deleteRule(id) {
+  rules = rules.filter(r => r.id !== id);
+  if (openDropdownId === id) openDropdownId = null;
+  renderRules();
+}
+
+/* ═══════════════════════════════════════════
+   渲染全部规则
+═══════════════════════════════════════════ */
+function renderRules() {
+  const list = document.getElementById('rulesList');
+  list.innerHTML = rules.map((rule, idx) => buildRuleHTML(rule, idx)).join('');
+  // 重新绑定事件（因为 innerHTML 替换了 DOM）
+  rules.forEach(rule => {
+    bindDropdownEvents(rule.id);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   构建单条规则 HTML
+═══════════════════════════════════════════ */
+function buildRuleHTML(rule, idx) {
+  const occupied = occupiedBy(rule.id);
+  const isOpen = openDropdownId === rule.id;
+
+  // Tags for trigger
+  let triggerInner = '';
+  if (rule.provinces.length === 0) {
+    triggerInner = '<span class="placeholder">请选择省份</span>';
+  } else if (rule.provinces.length <= 4) {
+    triggerInner = rule.provinces.map(p =>
+      `<span class="tag">${p}<span class="tag-del" data-rule="${rule.id}" data-p="${p}">×</span></span>`
+    ).join('');
+  } else {
+    // 前3个 tag + 计数
+    triggerInner = rule.provinces.slice(0, 3).map(p =>
+      `<span class="tag">${p}<span class="tag-del" data-rule="${rule.id}" data-p="${p}">×</span></span>`
+    ).join('');
+    triggerInner += `<span class="select-count">已选 ${rule.provinces.length} 项</span>`;
+  }
+
+  // 省份选项下拉
+  const regionsHTML = REGIONS.map(region => {
+    const optionsHTML = region.provinces.map(p => {
+      const sel = rule.provinces.includes(p) ? 'selected' : '';
+      const dis = (!rule.provinces.includes(p) && occupied.has(p)) ? 'disabled' : '';
+      const title = dis ? `${p}已被其他规则使用` : '';
+      return `<span class="p-option ${sel} ${dis}" data-rule="${rule.id}" data-p="${p}" title="${title}">${p}</span>`;
+    }).join('');
+    return `
+      <div class="region-group-label">
+        ${region.name}
+        <span class="select-all-btn" data-rule="${rule.id}" data-region="${region.id}">全选</span>
+      </div>
+      <div class="province-options">${optionsHTML}</div>
+    `;
+  }).join('');
+
+  // 已选省份 Tag 完整展示（下方展示区）
+  const spTags = rule.provinces.length > 0
+    ? rule.provinces.map(p =>
+        `<span class="tag">${p}<span class="tag-del" data-rule="${rule.id}" data-p="${p}">×</span></span>`
+      ).join('')
+    : '<span style="font-size:12px;color:#ccc">暂未选择省份</span>';
+
+  return `
+    <div class="rule-card" id="rc-${rule.id}">
+      <div class="rule-card-head">
+        <span class="rule-index">规则 ${idx + 1}</span>
+        <span class="rule-head-label">为指定省份设置特定运费</span>
+        <button class="rule-del-btn" onclick="deleteRule(${rule.id})">✕ 删除规则</button>
+      </div>
+      <div class="rule-card-body">
+
+        <!-- 省份选择 -->
+        <div class="province-selector">
+          <div class="selector-label">收货省份</div>
+
+          <!-- 触发器 -->
+          <div class="select-trigger ${isOpen ? 'open' : ''}" id="trigger-${rule.id}" data-rule="${rule.id}">
+            ${triggerInner}
+            <span class="arrow-icon">▾</span>
+          </div>
+
+          <!-- 下拉面板 -->
+          <div style="position:relative">
+            <div class="dropdown" id="dd-${rule.id}" style="display:${isOpen ? 'block' : 'none'}">
+              <div class="dropdown-search">
+                <input type="text" placeholder="搜索省份…" id="ddsearch-${rule.id}" oninput="filterDropdown(${rule.id}, this.value)" />
+              </div>
+              <div id="ddoptions-${rule.id}">
+                ${regionsHTML}
+              </div>
+            </div>
+          </div>
+
+          <!-- 已选省份展示 -->
+          <div class="selected-provinces">
+            <div class="sp-title">已选省份（共 ${rule.provinces.length} 个）</div>
+            <div class="sp-tags">${spTags}</div>
+          </div>
+        </div>
+
+        <!-- 运费 -->
+        <div class="freight-field">
+          <div class="f-label">运费金额</div>
+          <div class="f-wrap">
+            <input type="number" min="0" step="0.5"
+              value="${rule.freight}"
+              placeholder="请输入"
+              id="freight-${rule.id}"
+              oninput="onFreightInput(${rule.id}, this.value)"
+            />
+            <span class="f-unit">元</span>
+          </div>
+          <div class="f-hint">该区域每单运费</div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════════
+   下拉事件绑定
+═══════════════════════════════════════════ */
+function bindDropdownEvents(ruleId) {
+  const trigger = document.getElementById('trigger-' + ruleId);
+  if (!trigger) return;
+
+  // 触发器点击
+  trigger.addEventListener('click', (e) => {
+    // 若点到 tag-del，不打开下拉
+    if (e.target.classList.contains('tag-del')) return;
+    e.stopPropagation();
+    if (openDropdownId === ruleId) {
+      closeDropdown();
+    } else {
+      closeDropdown();
+      openDropdown(ruleId);
+    }
+  });
+
+  // 省份 option 点击（委托到 ddoptions）
+  const ddopts = document.getElementById('ddoptions-' + ruleId);
+  if (ddopts) {
+    ddopts.addEventListener('click', (e) => {
+      const opt = e.target.closest('.p-option');
+      const allBtn = e.target.closest('.select-all-btn');
+      if (opt && !opt.classList.contains('disabled')) {
+        const p = opt.dataset.p;
+        toggleProvince(ruleId, p);
+      }
+      if (allBtn) {
+        const regionId = allBtn.dataset.region;
+        selectAllInRegion(ruleId, regionId);
+      }
+    });
+  }
+
+  // tag-del 点击（触发器内的 tag）
+  trigger.addEventListener('click', (e) => {
+    if (e.target.classList.contains('tag-del')) {
+      e.stopPropagation();
+      const p = e.target.dataset.p;
+      const rid = parseInt(e.target.dataset.rule);
+      removeProvince(rid, p);
+    }
+  });
+
+  // 已选区域的 tag-del
+  const spArea = document.querySelector(`#rc-${ruleId} .sp-tags`);
+  if (spArea) {
+    spArea.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tag-del')) {
+        const p = e.target.dataset.p;
+        const rid = parseInt(e.target.dataset.rule);
+        removeProvince(rid, p);
+      }
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════
+   下拉开关
+═══════════════════════════════════════════ */
+function openDropdown(ruleId) {
+  openDropdownId = ruleId;
+  const dd = document.getElementById('dd-' + ruleId);
+  const trigger = document.getElementById('trigger-' + ruleId);
+  if (dd) dd.style.display = 'block';
+  if (trigger) trigger.classList.add('open');
+  // focus search
+  const s = document.getElementById('ddsearch-' + ruleId);
+  if (s) setTimeout(() => s.focus(), 50);
+}
+
+function closeDropdown() {
+  if (openDropdownId !== null) {
+    const dd = document.getElementById('dd-' + openDropdownId);
+    const trigger = document.getElementById('trigger-' + openDropdownId);
+    if (dd) dd.style.display = 'none';
+    if (trigger) trigger.classList.remove('open');
+    openDropdownId = null;
+  }
+}
+
+// 点击外部关闭
+document.addEventListener('click', (e) => {
+  if (openDropdownId === null) return;
+  const rc = document.getElementById('rc-' + openDropdownId);
+  if (rc && !rc.contains(e.target)) closeDropdown();
+});
+
+/* ═══════════════════════════════════════════
+   省份选择逻辑
+═══════════════════════════════════════════ */
+function toggleProvince(ruleId, p) {
+  const rule = rules.find(r => r.id === ruleId);
+  if (!rule) return;
+  const idx = rule.provinces.indexOf(p);
+  if (idx > -1) rule.provinces.splice(idx, 1);
+  else rule.provinces.push(p);
+  rerenderRule(ruleId);
+}
+
+function removeProvince(ruleId, p) {
+  const rule = rules.find(r => r.id === ruleId);
+  if (!rule) return;
+  rule.provinces = rule.provinces.filter(x => x !== p);
+  rerenderRule(ruleId);
+}
+
+function selectAllInRegion(ruleId, regionId) {
+  const rule = rules.find(r => r.id === ruleId);
+  if (!rule) return;
+  const region = REGIONS.find(r => r.id === regionId);
+  if (!region) return;
+  const occupied = occupiedBy(ruleId);
+  region.provinces.forEach(p => {
+    if (!occupied.has(p) && !rule.provinces.includes(p)) {
+      rule.provinces.push(p);
+    }
+  });
+  rerenderRule(ruleId);
+}
+
+/* ═══════════════════════════════════════════
+   运费输入
+═══════════════════════════════════════════ */
+function onFreightInput(ruleId, val) {
+  const rule = rules.find(r => r.id === ruleId);
+  if (rule) rule.freight = val;
+}
+
+/* ═══════════════════════════════════════════
+   重新渲染单条规则（保留下拉状态）
+═══════════════════════════════════════════ */
+function rerenderRule(ruleId) {
+  const rule = rules.find(r => r.id === ruleId);
+  if (!rule) return;
+  const idx = rules.indexOf(rule);
+  const card = document.getElementById('rc-' + ruleId);
+  if (!card) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = buildRuleHTML(rule, idx);
+  card.replaceWith(tmp.firstElementChild);
+  bindDropdownEvents(ruleId);
+  // 如果下拉是开着的，重新打开
+  if (openDropdownId === ruleId) {
+    openDropdown(ruleId);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   搜索过滤下拉选项
+═══════════════════════════════════════════ */
+function filterDropdown(ruleId, kw) {
+  const container = document.getElementById('ddoptions-' + ruleId);
+  if (!container) return;
+  const rule = rules.find(r => r.id === ruleId);
+  if (!rule) return;
+  const occupied = occupiedBy(ruleId);
+  kw = kw.trim();
+
+  if (!kw) {
+    // 恢复全部
+    container.innerHTML = REGIONS.map(region => {
+      const optionsHTML = region.provinces.map(p => {
+        const sel = rule.provinces.includes(p) ? 'selected' : '';
+        const dis = (!rule.provinces.includes(p) && occupied.has(p)) ? 'disabled' : '';
+        return `<span class="p-option ${sel} ${dis}" data-rule="${ruleId}" data-p="${p}">${p}</span>`;
+      }).join('');
+      return `
+        <div class="region-group-label">
+          ${region.name}
+          <span class="select-all-btn" data-rule="${ruleId}" data-region="${region.id}">全选</span>
+        </div>
+        <div class="province-options">${optionsHTML}</div>
+      `;
+    }).join('');
+  } else {
+    const matched = ALL_PROVINCES.filter(p => p.includes(kw));
+    if (matched.length === 0) {
+      container.innerHTML = '<div class="dropdown-empty">未找到匹配省份</div>';
+    } else {
+      const optionsHTML = matched.map(p => {
+        const sel = rule.provinces.includes(p) ? 'selected' : '';
+        const dis = (!rule.provinces.includes(p) && occupied.has(p)) ? 'disabled' : '';
+        return `<span class="p-option ${sel} ${dis}" data-rule="${ruleId}" data-p="${p}">${p}</span>`;
+      }).join('');
+      container.innerHTML = `<div class="province-options" style="padding:10px 12px">${optionsHTML}</div>`;
+    }
+  }
+
+  // 重新绑定 option 点击（因为替换了 innerHTML）
+  const ddopts = document.getElementById('ddoptions-' + ruleId);
+  if (ddopts) {
+    ddopts.addEventListener('click', (e) => {
+      const opt = e.target.closest('.p-option');
+      const allBtn = e.target.closest('.select-all-btn');
+      if (opt && !opt.classList.contains('disabled')) toggleProvince(ruleId, opt.dataset.p);
+      if (allBtn) selectAllInRegion(ruleId, allBtn.dataset.region);
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════
+   模板名称
+═══════════════════════════════════════════ */
+function onNameInput(input) {
+  const len = input.value.length;
+  const cc = document.getElementById('charCount');
+  cc.textContent = len + ' / 20';
+  cc.className = 'char-count' + (len >= 18 ? ' warn' : '');
+  if (len > 0) {
+    input.classList.remove('err');
+    document.getElementById('nameError').classList.remove('show');
+  }
+}
+
+/* ═══════════════════════════════════════════
+   保存
+═══════════════════════════════════════════ */
+function saveTemplate() {
+  const name = document.getElementById('templateName').value.trim();
+  if (!name) {
+    document.getElementById('templateName').classList.add('err');
+    document.getElementById('nameError').classList.add('show');
+    document.getElementById('templateName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  // 校验规则：有省份但没运费
+  for (const rule of rules) {
+    if (rule.provinces.length > 0 && rule.freight === '') {
+      showToast(`规则 ${rules.indexOf(rule) + 1} 请填写运费金额`);
+      document.getElementById('freight-' + rule.id).focus();
+      return;
+    }
+    if (rule.provinces.length === 0 && rule.freight !== '') {
+      showToast(`规则 ${rules.indexOf(rule) + 1} 请选择省份`);
+      return;
+    }
+  }
+  const defaultFreight = parseFloat(document.getElementById('defaultFreight').value) || 0;
+  const result = { name, defaultFreight, rules: rules.map(r => ({ provinces: r.provinces, freight: parseFloat(r.freight) })) };
+  console.log('保存数据：', result);
+  showToast('✅ 模板保存成功');
+  setTimeout(() => window.location.href = 'freight-template-list.html', 1500);
+}
+
+/* ═══════════════════════════════════════════
+   Toast
+═══════════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ═══════════════════════════════════════════
+   初始化
+═══════════════════════════════════════════ */
+renderRules();
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('id')) {
+  document.getElementById('pageTitle').textContent = '编辑模板';
+  document.getElementById('pageTitleH1').textContent = '编辑运费模板';
+}
+</script>
+</body>
+</html>
